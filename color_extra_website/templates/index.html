@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>Colors Extraction</title>
+        <!-- Favicon-->
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/rainbow.png') }}" />
+        <!-- Bootstrap icons-->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
+    </head>
+    <body>
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-bottom">
+            <div class="container px-4 px-lg-5">
+                <a class="navbar-brand" href="https://ousmall.github.io/">&copy; Small Ou {{ current_year }}</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item active"><a class="nav-link" href="{{ url_for('home_page') }}">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('contact') }}">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- mian section-->
+        <section class="py-5">
+            <div class="container px-4 px-lg-5 my-5">
+                <div class="row gx-4 gx-lg-5 align-items-center">
+
+                    <!-- show user's photo-->
+                    <div class="col-md-6">
+                        {% if image_url %}
+                            <img class="card-img-top mb-5 mb-md-0" src="{{ image_url }}" alt="Uploaded image" />
+                        {% else %}
+                            <img class="card-img-top mb-5 mb-md-0" src="https://i.pinimg.com/736x/65/fb/e0/65fbe0a7de8de92afe6f2042c68c988b.jpg" alt="default" />
+                        {% endif %}
+                     </div>
+
+                    <div class="col-md-6">
+                        <h1 class="display-5 fw-bolder">Top 10 colors in your pictures</h1>
+
+                        <div class="fs-5 mb-5" style="margin-top: 50px;">
+                        <form id="uploadForm" method="post" enctype="multipart/form-data" action="{{ url_for('handle_upload') }}">
+                            <div class="d-flex">
+                                <input type="file" id="imageInput" name="image" accept="image/*" style="display: none;">
+                                <input class="form-control pe-0" type="text" id="filePath" placeholder="File Path" aria-label="Path" readonly>
+                                <button class="btn btn-outline-dark flex-shrink-0" type="button" onclick="document.getElementById('imageInput').click();">
+                                    Select photo
+                                </button>
+                                <button class="btn btn-outline-dark flex-shrink-0" type="submit">
+                                    Upload
+                                </button>
+                            </div>
+                        </form>
+                            <p style="color: red; font-style: italic; font-size: 12px;">The image format must be 'png', 'jpg', 'jpeg', 'gif'</p>
+                        </div>
+
+                        <p class="lead">
+                        {% for color in top_colors %}
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <div style="width: 50px; height: 30px; background-color: rgb{{ color['rgb'] }};"></div>
+                                <p style="margin-left: 10px;">RGB: {{ color['rgb'] }} HEX: {{ color['hex'] }}</p>
+                         </div>
+                        {% endfor %}
+
+                        <button class="btn btn-outline-dark flex-shrink-0" type="button" onclick="copyAllColors()">
+                            <!-- svg -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-copy" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z"/>
+                            </svg>
+                            <span>Copy all</span>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bootstrap core JS-->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+
+        <!-- Custom JS to handle file input -->
+        <script>
+            // get image path
+            document.getElementById('imageInput').addEventListener('change', function() {
+                var filePath = this.value.split('\\').pop();
+                document.getElementById('filePath').value = filePath;
+            });
+
+            // Function to send colors data to the server for copying
+            function copyAllColors() {
+                var colorsData = [
+                    {% for color in top_colors %}
+                        {
+                            rgb: "{{ color['rgb'] }}",
+                            hex: "{{ color['hex'] }}"
+                        }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ];
+
+                fetch("{{ url_for('copy_colors_info') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ colors: colorsData })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("An error occurred while copying colors.");
+                });
+            }
+        </script>
+
+    </body>
+</html>
